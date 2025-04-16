@@ -7,8 +7,10 @@ name = "tap-excel"
 version = "0.1"
 dependencies = [
     "singer_sdk~=0.34.1",
-    "pandas>=1.3.0"
+    "pandas>=1.3.0",
+    "xlsx2csv>=0.8.0"
 ]
 
 [project.scripts]
 tap-excel = "tap_excel:cli"
+
