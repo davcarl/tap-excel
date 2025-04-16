@@ -1,7 +1,13 @@
 {
   "file_path": "Book1.xlsx",
-  "sheets": [],
-  "key_properties": ["id"],
-  "date_format": "%Y-%m-%d"
+  "sheets": [
+    {
+      "name": "Orders",
+      "replication_key": "Order Date"
+    },
+    {
+      "name": "Returns",
+      "replication_key": "Order ID"
+    }
+  ]
 }
-
