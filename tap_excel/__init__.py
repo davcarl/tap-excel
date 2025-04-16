@@ -8,7 +8,7 @@ from datetime import datetime
 
 LOGGER = singer.get_logger()
 
-class ExcelTap:
+class ExcelTap():
     def __init__(self, config: Dict):
         self.config = config
         self.file_path = Path(config['file_path'])
