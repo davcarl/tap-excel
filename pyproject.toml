@@ -11,4 +11,4 @@ dependencies = [
 ]
 
 [project.scripts]
-tap-excel = "tap_excel:main"
+tap-excel = "tap_excel:cli"
