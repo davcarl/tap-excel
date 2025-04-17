@@ -60,7 +60,6 @@ class TapExcel(Tap):
             self.logger.error(f"Could not read Excel file: {e}")
             return []
 
-        # If sheets are undefined, use all available sheets in the file
         sheet_names = excel_file.sheet_names
         if not sheets_config:
             self.logger.info("No specific sheets provided, using all sheets in the file.")
@@ -68,7 +67,6 @@ class TapExcel(Tap):
 
         for sheet_cfg in sheets_config:
             sheet_name = sheet_cfg["name"]
-            # Use the sheet-specific replication_key
             replication_key = sheet_cfg.get("replication_key")
 
             if sheet_name not in sheet_names:
@@ -78,19 +76,34 @@ class TapExcel(Tap):
             try:
                 df = pd.read_excel(file_path, sheet_name=sheet_name)
 
-                # If replication_key is defined, check if the column exists
-                if replication_key:
-                    if replication_key not in df.columns:
-                        self.logger.error(f"Replication key column '{replication_key}' is missing from sheet '{sheet_name}'. Failing sync.")
-                        raise ValueError(f"Replication key column '{replication_key}' is missing from sheet '{sheet_name}'.")
+                if df.empty or len(df.columns) == 0:
+                    self.logger.info(f"Sheet '{sheet_name}' is empty. Skipping.")
+                    continue
 
-                records = df.to_dict(orient="records")
+                if replication_key and replication_key not in df.columns:
+                    self.logger.error(f"Replication key column '{replication_key}' is missing from sheet '{sheet_name}'. Failing sync.")
+                    raise ValueError(f"Replication key column '{replication_key}' is missing from sheet '{sheet_name}'.")
+
+                # Infer schema from DataFrame dtypes
                 schema = {
                     "type": "object",
-                    "properties": {
-                        col: {"type": ["string", "null"]} for col in df.columns
-                    }
+                    "properties": {}
                 }
+                for col in df.columns:
+                    dtype = df[col].dtype
+                    if pd.api.types.is_integer_dtype(dtype):
+                        col_type = "integer"
+                    elif pd.api.types.is_float_dtype(dtype):
+                        col_type = "number"
+                    elif pd.api.types.is_bool_dtype(dtype):
+                        col_type = "boolean"
+                    elif pd.api.types.is_datetime64_any_dtype(dtype):
+                        col_type = "string"  # or include "format": "date-time"
+                    else:
+                        col_type = "string"
+                    schema["properties"][col] = {"type": [col_type, "null"]}
+
+                records = df.to_dict(orient="records")
 
                 streams.append(
                     ExcelStream(
@@ -98,7 +111,7 @@ class TapExcel(Tap):
                         name=sheet_name,
                         schema=schema,
                         records=records,
-                        replication_key=replication_key  # Will be None if not available
+                        replication_key=replication_key
                     )
                 )
             except Exception as e:
